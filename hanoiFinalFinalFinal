@@ -1,0 +1,97 @@
+#Getsemani Tapia/ Renata Caballero
+.text
+main:
+	addi s0, zero, 15    #num de discos
+	addi s1, s0, -1     #inciia el registro en -1 (so inicia en 4 si el num de disc es 5)
+	
+	# se calcula el offset
+	add t2, zero, s0    #aqui se inicializa el num de discos
+	addi t0, zero, 1    #inicia el registro de t0 en 1 (aqui marca el loop) 
+	addi t1, zero, 0    #OFFSET inicia el t1 en 0
+	
+	
+loop:	bge t0, t2, endLoop	#si t0>= t6 sale del loop
+	addi t1, t1, 32     #OFFSET += 32 bits
+	addi t0, t0, 1	#increment t0 en 1 (esto en cada iteracion)
+	jal loop	#salta al incio del loop cada iteracon (lit el loop)
+	
+	
+endLoop: nop
+
+	#---APUNTADORES---
+	lui a0, 0x10010        #pt al inicio de memoria (y de torre)
+	add a1, a0, t1         #pt Torre A
+	addi a2, a1, 8         #pt Torre B
+	addi a3, a1, 4         #pt Torre C
+	
+	#fin
+
+print_discos:
+	slti t0, s0, 1 #compara los valores	  
+	beq t0, zero, if   #si s0 <= 1
+	addi s0, zero, 15 #carda los valores
+	jalr zero, ra, 0 #salta a la dir de retorno almacenada en ra
+	
+if:
+	sw s0, 0(a1)        #pone el disco en el pt de torre A
+	addi a1, a1, -32    #mueve pt a la pos atras de la memoria (por eso se restab los 32) para el prox disc
+	addi s0, s0, -1     #ahora queda un disc menos y se resta
+	jal print_discos    #salto a print_discos ##aqui es donde se empieza a loopear
+	
+	nop
+
+hanoi:
+	slti t0, s0, 1         #si s0 es = 1 t0 = 1 y si no es = 0
+	bne t0, zero, swap     #si t0 no es =0, salta a func swap.
+	#push -> ra
+	addi sp, sp, 4         #incrementa en pt en el stack y hace espacio
+	sw ra, 0(sp)           #guarda ra en stack
+
+	#aqui inicia la parte de hanoi 
+	addi s0, s0, -1        # Decrementa el número de discos
+	add a1, zero, a1       # a1 se pone como inicio
+	add t0, zero, a2       #guarda a2 en t0 
+	add a2, zero, a3       #a2 ya es destino (no solo auxiliar)
+	add a3, zero, t0       #ahora a3 es auxiliar
+	jal hanoi              #llama hanoi
+	
+	##wuuu recursividad------
+	
+	#primer disco a torre final (destino
+	addi a1, a1, 32        #mueve la direccion del pt para el siguiente disco	
+	lw t1, 0(a1)           #lee el disco de a1 y lo guarda en t1
+	sw zero, 0(a1)         #elimina ese disco de a1
+	sw t1, 0(a2)           #escrib el disco en la pos de a1
+	addi a2, a2, -32       #ahora ajusta la direccion del pt de a2 al prox disco 
+	
+	#aqui basicamente hace nuestro pop del stack para ver la posicion y si esta vacio ese espacio
+	
+	#segundo loop recursivo d hanoi
+	add t0, zero, a1       #guarda a1 en t0
+	add a1, zero, a3       #a1 ahoea es auxiliar
+	add a3, zero, a2       #a3 es el nuevo inicio
+	add a2, zero, t0       #a2 es destino
+	jal hanoi              #llama 2da vuelta de hanoi
+	
+	add t0, zero, a1		#guarda a1 (torr A) en t0
+	add a1, zero, a2		#cambia el pt de torre B a torre A
+	add a2, zero, t0		#uelve a cambiar pt de a2 a torrA
+
+	
+	# Restauración del estado y retorno de la función.
+	addi s0, s0, 1         #incrementa el num d disc
+	lw ra, 0(sp)           #restaura a ra en el stack		
+	addi sp, sp, -4        #libera el espacio del pt del stack
+	beq s0, s1, exit       # si num d discos = s1 salta exi
+	jalr zero, ra, 0       #return de func
+
+swap:
+	addi a1, a1, 32     #mueve la pos abajo 
+	lw t1, 0(a1)       #lee disc
+	sw zero, 0(a1)     # borra disc
+	sw t1, 0(a3)       #escribe disc a la torre destino inicial (a3)
+	addi a3, a3, -32  #mueve pos arriba para la torre destino
+	jalr zero, ra, 0   #return func
+
+exit:
+	nop #fin
